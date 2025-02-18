@@ -203,6 +203,14 @@ class NodeRtmpSession {
     if (this.isStarting) {
       this.isStarting = false;
 
+      let oldId=context.publishers.get(this.publishStreamPath);
+      let oldSession=context.sessions.get(oldId);
+      if(oldId && oldSession instanceof NodeRtmpSession){
+        Logger.log(`[rtmp disconnect] delete oldId=${oldId}; id=${this.id}`);
+        oldSession.flush();
+        context.sessions.delete(oldId);
+      }
+
       if (this.playStreamId > 0) {
         this.onDeleteStream({ streamId: this.playStreamId });
       }
@@ -216,7 +224,7 @@ class NodeRtmpSession {
         this.pingInterval = null;
       }
 
-      Logger.log(`[rtmp disconnect] id=${this.id}`);
+      Logger.log(`[rtmp disconnect] end; id=${this.id}`);
       
       context.nodeEvent.emit('doneConnect', this.id, this.connectCmdObj);
 
@@ -242,8 +250,12 @@ class NodeRtmpSession {
   }
 
   onSocketError(e) {
-    // Logger.log('onSocketError', e);
-    this.stop();
+    Logger.log('onSocketError', e);
+    try {
+      this.stop();
+    }catch (e){
+      Logger.log('onSocketError this.stop error:', e);
+    }
   }
 
   onSocketTimeout() {
@@ -1326,7 +1338,7 @@ class NodeRtmpSession {
     }
 
     if (invokeMessage.streamId == this.publishStreamId) {
-      if (this.isPublishing) {
+      //if (this.isPublishing) {
         Logger.log(`[rtmp publish] Close stream. id=${this.id} streamPath=${this.publishStreamPath} streamId=${this.publishStreamId}`);
         context.nodeEvent.emit('donePublish', this.id, this.publishStreamPath, this.publishArgs);
         if (this.isStarting) {
@@ -1363,7 +1375,7 @@ class NodeRtmpSession {
         }
         this.players.clear();
         this.isPublishing = false;
-      }
+      //}
       this.publishStreamId = 0;
       this.publishStreamPath = '';
     }
